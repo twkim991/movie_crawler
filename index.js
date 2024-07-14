@@ -8,7 +8,7 @@ function sleep(ms) {
 	while (Date.now() < wakeUpTime) {}
 }
 
-const run = async () => {
+const megabox = async () => {
 
     // 크롬 드라이버 실행 및 인스턴스 생성
     let driver = await new Builder()
@@ -22,9 +22,10 @@ const run = async () => {
 		
 		while(true) {
 			await sleep(1000);
+			console.log("목록 수집중...")
 			let addbuttondiv = await driver.findElement(By.id('addMovieDiv'))
 			let isdisplay = await driver.executeScript("return arguments[0].style.display;", addbuttondiv);
-			console.log(isdisplay)
+			// console.log(isdisplay)
 			if(isdisplay === 'none') {
 				break;
 			}
@@ -66,6 +67,72 @@ const run = async () => {
         // 완료되면 자동으로 브라우저 종료
         driver.quit(); 
     }
+}
+
+const cgv = async () => {
+
+    // 크롬 드라이버 실행 및 인스턴스 생성
+    let driver = await new Builder()
+        .forBrowser('chrome')
+        .build();
+
+    try {
+        // 크롤링 대상 페이지
+        await driver.get('http://www.cgv.co.kr/movies/');
+
+		
+		while(true) {
+			await sleep(1000);
+			console.log('목록 수집중...')
+			try {
+				let addbutton = await driver.findElement(By.className('btn-more-fontbold'))
+				await driver.wait(until.elementIsEnabled(addbutton), 20000);
+				await sleep(1000);
+				await addbutton.click();
+			} catch (e) {
+				if (e.name === 'NoSuchElementError') {
+                    break;
+                } else {
+                    // 다른 에러는 다시 던지기
+                    throw e;
+                }
+			}
+		};
+
+
+        // 각 영화의 제목과 개봉일 가져오기
+        let olelements = await driver.findElements(By.css('ol'))
+		await sleep(2000)
+		for (let ol of olelements) {
+			let lielements = await ol.findElements(By.css('li'));
+			for (let li of lielements) {
+				try {
+					await driver.wait(until.elementIsVisible(li), 20000);
+					let title = await li.findElement(By.className('title'))
+					await driver.wait(until.elementIsVisible(title), 20000);
+					let titletext = await title.getText();
+					let date = await li.findElement(By.className('txt-info'))
+					let datetext = await date.getText();
+					console.log(titletext, datetext);
+				} catch (e) {
+					// p.tit 태그가 없는 경우 예외 처리
+					console.log(e)
+					console.log('데이터를 찾을 수 없음');
+				}
+			}
+		}
+    } catch (e) {
+        console.log(e);
+    } finally {
+        console.log('종료')
+        // 완료되면 자동으로 브라우저 종료
+        driver.quit(); 
+    }
+}
+
+const run = async () => {
+	await megabox();
+	await cgv();
 }
 
 run();
